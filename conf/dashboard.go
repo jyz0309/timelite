@@ -11,7 +11,8 @@ var defaultDashboardPath = "./config/dashboards"
 
 var dashboardsConfig map[string]*Dashboard
 
-func init() {
+func InitDashboardConf(configPath string) {
+
 	if _, err := os.Stat(defaultDashboardPath); os.IsNotExist(err) {
 		os.MkdirAll(defaultDashboardPath, 0755)
 	}
