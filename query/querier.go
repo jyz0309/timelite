@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"time"
+	"timelite/conf"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/promslog"
@@ -18,7 +19,7 @@ var globalQuerier *Querier
 func GetGlobalQuerier(path string) *Querier {
 	if globalQuerier == nil {
 		logrus.Info("new quierier")
-		querier, err := NewQuerier("./timelite/tsdb")
+		querier, err := NewQuerier(conf.DefaultConfig.StoragePath)
 		if err != nil {
 			logrus.Errorf("failed to new querier, err[%s]", err)
 			panic(err)
@@ -40,6 +41,7 @@ type Querier struct {
 func NewQuerier(path string) (*Querier, error) {
 	logger := promslog.New(&promslog.Config{})
 	// TODO(alkaid): make the config can changeable
+
 	opts := promql.EngineOpts{
 		Logger:               logger.With("component", "query_engine"),
 		Reg:                  prometheus.DefaultRegisterer,

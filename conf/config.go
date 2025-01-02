@@ -1,6 +1,10 @@
 package conf
 
 import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	common_config "github.com/prometheus/common/config"
@@ -19,19 +23,34 @@ const (
 var DefaultConfig *Config
 
 type Config struct {
-	StoragePath string
-	LogPath     string
-	Host        string
+	StoragePath   string
+	LogPath       string
+	DashboardPath string
+	Host          string `default:"0.0.0.0:9090"`
 
-	PromConfig *config.Config
+	PromConfig *config.Config `json:"-"`
 }
 
-func init() {
+func GetConfig(configPath string) error {
+	config := &Config{}
+	conf, err := os.ReadFile(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to read config file(%s): %v", configPath, err)
+	}
+	if err = json.Unmarshal(conf, config); err != nil {
+		return fmt.Errorf("failed to unmarshal config file(%s): %v", configPath, err)
+	}
+	DefaultConfig = config
+	DefaultConfig.PromConfig = GetPromConfig(DefaultConfig.Host)
+	return nil
+}
+
+func GetPromConfig(host string) *config.Config {
 	staticConfig := &discovery.StaticConfig{
 		{
 			Targets: []model.LabelSet{
 				{
-					model.AddressLabel: model.LabelValue(":9090"),
+					model.AddressLabel: model.LabelValue(host),
 				},
 			},
 		},
@@ -59,7 +78,47 @@ func init() {
 			},
 		},
 	}
-	DefaultConfig = &Config{
-		PromConfig: promConf,
+	return promConf
+}
+
+func InitConfig(configPath, storagePath, host string) error {
+	if configPath != "" {
+		if _, err := os.Stat(configPath); !os.IsNotExist(err) {
+			// read config from file
+			err := GetConfig(configPath)
+			if err != nil {
+				// if file not exist, create it
+				return err
+			}
+		}
 	}
+
+	dashboardPath := filepath.Join(filepath.Dir(configPath), "dashboards")
+	logPath := filepath.Join(storagePath, "log")
+
+	promConf := GetPromConfig(host)
+
+	DefaultConfig = &Config{
+		StoragePath:   storagePath,
+		DashboardPath: dashboardPath,
+		LogPath:       logPath,
+		PromConfig:    promConf,
+		Host:          host,
+	}
+	return SaveConfig(configPath)
+
+}
+
+func SaveConfig(configPath string) error {
+	if _, err := os.Stat(filepath.Dir(configPath)); os.IsNotExist(err) {
+		err = os.MkdirAll(filepath.Dir(configPath), 0755)
+		if err != nil {
+			return fmt.Errorf("failed to mkdir config dir: %v", err)
+		}
+	}
+	bytes, err := json.Marshal(DefaultConfig)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(configPath, bytes, 0644)
 }

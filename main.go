@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"timelite/cmd"
@@ -18,36 +19,40 @@ func main() {
 	app.HelpFlag.Short('h')
 
 	queryCmd := app.Command("query", "Query the data in the timeline.")
-	queryCmd.Flag("config-path", "The path to the config file.").Default("./timelite/config").String()
-	queryCmd.Flag("storage-path", "The path to the tsdb data.").Default("./timelite/tsdb").String()
+	queryConfigPath := queryCmd.Flag("config-path", "The path to the config file.").String()
+	queryCmd.Flag("storage-path", "The path to the tsdb data.").Default("./storage/tsdb").String()
 
 	tsdbCmd := app.Command("tsdb", "Manage the tsdb.")
 	tsdbMockCmd := tsdbCmd.Command("mock", "Mock the tsdb data.")
 
 	//tsdbCleanCmd := tsdbCmd.Command("clean", "Clean the tsdb data.")
 	runTSDBCmd := tsdbCmd.Command("run", "Run the tsdb")
-	runTSDBCmd.Flag("host", "The host to scrape metrics.").Default("0.0.0.0:9090").
-		StringVar(&conf.DefaultConfig.Host)
+	host := runTSDBCmd.Flag("host", "The host to scrape metrics.").Default("0.0.0.0:9090").String()
 
-	runTSDBCmd.Flag("storage-path", "The path to store the tsdb data.").Default("./timelite/tsdb").
-		StringVar(&conf.DefaultConfig.StoragePath)
+	storagePath := runTSDBCmd.Flag("storage-path", "The path to store the tsdb data.").Default("./storage/tsdb").
+		String()
+
+	configPath := runTSDBCmd.Flag("config-path", "The path to store the tsdb data.").Default("./storage/conf").String()
 
 	parseCmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	switch parseCmd {
 	case queryCmd.FullCommand():
+		if queryConfigPath == nil {
+			panic("config path is required")
+		}
+		err := conf.GetConfig(*queryConfigPath)
+		if err != nil {
+			panic(err)
+		}
+		conf.InitDashboardConf(conf.DefaultConfig.DashboardPath)
 		cmd.Init()
 	case tsdbMockCmd.FullCommand():
 		util.PromTestServer()
 	case runTSDBCmd.FullCommand():
-		os.MkdirAll(filepath.Join(conf.DefaultConfig.StoragePath, "log"), 0755)
-		conf.DefaultConfig.LogPath = filepath.Join(conf.DefaultConfig.StoragePath, "log")
-		logPath := filepath.Join(conf.DefaultConfig.LogPath, "log.info")
-		f, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-		if err != nil {
-			panic(err)
-		}
-		logrus.StandardLogger().SetOutput(f)
+		prepareTSDBEnv(*configPath, *storagePath, *host)
+		// save config
+		conf.SaveConfig(filepath.Join(*configPath, "config.json"))
 
 		engine, err := engine.NewEngine(conf.DefaultConfig.StoragePath, conf.DefaultConfig.LogPath)
 		if err != nil {
@@ -58,4 +63,27 @@ func main() {
 		stop := make(chan struct{})
 		<-stop
 	}
+}
+
+func prepareTSDBEnv(configPath, storagePath, host string) {
+	err := conf.InitConfig(configPath, storagePath, host)
+	if err != nil {
+		panic(err)
+	}
+	// mkdir log dir
+	err = os.MkdirAll(conf.DefaultConfig.LogPath, 0755)
+	if err != nil {
+		panic(fmt.Sprintf("failed to mkdir log(%s) dir: %v", conf.DefaultConfig.LogPath, err))
+	}
+	// mkdir dashboard dir
+	err = os.MkdirAll(conf.DefaultConfig.DashboardPath, 0755)
+	if err != nil {
+		panic(fmt.Sprintf("failed to mkdir dashboard(%s) dir: %v", conf.DefaultConfig.DashboardPath, err))
+	}
+	logFile := filepath.Join(conf.DefaultConfig.LogPath, "log.info")
+	f, err := os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		panic(fmt.Sprintf("failed to open log file(%s): %v", logFile, err))
+	}
+	logrus.StandardLogger().SetOutput(f)
 }
