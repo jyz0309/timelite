@@ -19,7 +19,7 @@ func main() {
 	app.HelpFlag.Short('h')
 
 	queryCmd := app.Command("query", "Query the data in the timeline.")
-	queryConfigPath := queryCmd.Flag("config-path", "The path to the config file.").String()
+	queryConfigFile := queryCmd.Flag("config-file", "The path to the config file.").String()
 	queryCmd.Flag("storage-path", "The path to the tsdb data.").Default("./storage/tsdb").String()
 
 	tsdbCmd := app.Command("tsdb", "Manage the tsdb.")
@@ -38,10 +38,10 @@ func main() {
 
 	switch parseCmd {
 	case queryCmd.FullCommand():
-		if queryConfigPath == nil {
+		if queryConfigFile == nil {
 			panic("config path is required")
 		}
-		err := conf.GetConfig(*queryConfigPath)
+		err := conf.GetConfig(*queryConfigFile)
 		if err != nil {
 			panic(err)
 		}
