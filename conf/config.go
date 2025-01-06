@@ -81,11 +81,11 @@ func GetPromConfig(host string) *config.Config {
 	return promConf
 }
 
-func InitConfig(configPath, storagePath, host string) error {
-	if configPath != "" {
-		if _, err := os.Stat(configPath); !os.IsNotExist(err) {
+func InitConfig(configFile, storagePath, host string) error {
+	if configFile != "" {
+		if _, err := os.Stat(configFile); !os.IsNotExist(err) {
 			// read config from file
-			err := GetConfig(configPath)
+			err := GetConfig(configFile)
 			if err != nil {
 				// if file not exist, create it
 				return err
@@ -93,7 +93,7 @@ func InitConfig(configPath, storagePath, host string) error {
 		}
 	}
 
-	dashboardPath := filepath.Join(filepath.Dir(configPath), "dashboards")
+	dashboardPath := filepath.Join(filepath.Dir(configFile), "dashboards")
 	logPath := filepath.Join(storagePath, "log")
 
 	promConf := GetPromConfig(host)
@@ -105,13 +105,13 @@ func InitConfig(configPath, storagePath, host string) error {
 		PromConfig:    promConf,
 		Host:          host,
 	}
-	return SaveConfig(configPath)
+	return SaveConfig(configFile)
 
 }
 
-func SaveConfig(configPath string) error {
-	if _, err := os.Stat(filepath.Dir(configPath)); os.IsNotExist(err) {
-		err = os.MkdirAll(filepath.Dir(configPath), 0755)
+func SaveConfig(configFile string) error {
+	if _, err := os.Stat(filepath.Dir(configFile)); os.IsNotExist(err) {
+		err = os.MkdirAll(filepath.Dir(configFile), 0755)
 		if err != nil {
 			return fmt.Errorf("failed to mkdir config dir: %v", err)
 		}
@@ -120,5 +120,5 @@ func SaveConfig(configPath string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(configPath, bytes, 0644)
+	return os.WriteFile(configFile, bytes, 0644)
 }
