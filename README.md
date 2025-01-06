@@ -34,5 +34,5 @@ tsdb mock
 tsdb run [<flags>]
     Run the tsdb server.
     example:
-    timelite tsdb run --config-path="./storage/conf" --storage-path="./storage/tsdb" --host="0.0.0.0:9090"
+    timelite tsdb run --config-file="config.json" --storage-path="./storage/tsdb" --host="0.0.0.0:9090"
 ```

@@ -32,7 +32,7 @@ func main() {
 	storagePath := runTSDBCmd.Flag("storage-path", "The path to store the tsdb data.").Default("./storage/tsdb").
 		String()
 
-	configPath := runTSDBCmd.Flag("config-path", "The path to store the tsdb data.").Default("./storage/conf").String()
+	configFile := runTSDBCmd.Flag("config-file", "The config file path.").Default("./storage/conf").String()
 
 	parseCmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -50,9 +50,9 @@ func main() {
 	case tsdbMockCmd.FullCommand():
 		util.PromTestServer()
 	case runTSDBCmd.FullCommand():
-		prepareTSDBEnv(*configPath, *storagePath, *host)
+		prepareTSDBEnv(*configFile, *storagePath, *host)
 		// save config
-		conf.SaveConfig(filepath.Join(*configPath, "config.json"))
+		conf.SaveConfig(*configFile)
 
 		engine, err := engine.NewEngine(conf.DefaultConfig.StoragePath, conf.DefaultConfig.LogPath)
 		if err != nil {
@@ -65,8 +65,8 @@ func main() {
 	}
 }
 
-func prepareTSDBEnv(configPath, storagePath, host string) {
-	err := conf.InitConfig(configPath, storagePath, host)
+func prepareTSDBEnv(configFile, storagePath, host string) {
+	err := conf.InitConfig(configFile, storagePath, host)
 	if err != nil {
 		panic(err)
 	}
