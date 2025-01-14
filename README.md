@@ -1,25 +1,24 @@
 # timelite(WIP)
 
-timelite 是一个基于 Prometheus TSDB 的嵌入式时序数据库以及查询引擎，支持存储 Prometheus 格式的数据以及 PromQL 查询，并在 terminal 中提供类 Grafana 的交互式查询。
+timelite is an embedded time-series database and query engine based on Prometheus TSDB. It supports storing Prometheus-format data and PromQL queries, providing a Grafana-like interactive query experience in the terminal.
 
 ## demo
 
 ![demo](demo/demo.gif)
 
-## 特性
+## Features
 
-- 支持 PromQL 查询，并提供交互式查询
-- 使用 terminal 进行展示，无需配置外部可视化工具
-- 支持存储 Panels 配置
+- Supports PromQL queries with interactive query interface
+- Terminal-based visualization without external tools configuration
+- Supports storing Panels configurations
 
-## 安装
+## Installation
 
 ```bash
 go install github.com/timelite/timelite
 ```
 
-## 使用
-Commands:
+## Commands:
 ```bash
 help [<command>...]
     Show help.
@@ -36,4 +35,15 @@ tsdb run [<flags>]
     Run the tsdb server.
     example:
     timelite tsdb run --config-file="config.json" --storage-path="./storage/tsdb" --host="0.0.0.0:9090"
+```
+
+## Usage
+1. Run the tsdb server
+```bash
+timelite tsdb run --config-file="config.json" --storage-path="./storage/tsdb" --host="0.0.0.0:9090"
+```
+
+2. Query the data
+```bash
+timelite query --config-file="config.json" --storage-path="./storage/tsdb"
 ```
